@@ -1,0 +1,944 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多人分类记分板</title>
+<!-- PWA 核心配置 -->
+<meta name="theme-color" content="#2c3e50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuWkqeS6uuW8gOWuh+eJiyIsCiAgInNob3J0X25hbWUiOiAi6K6w5YiG5p2wIiwKICAiZGVzY3JpcHRpb24iOiAi5aSp5Lq65LiA5Lq65p2w5YiG5p6Q54mIIiwKICAic3RhcnRfdXJsIjogIi8iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmNWY1ZjUiLAogICJ0aGVtZV9jb2xvciI6ICIjMmMzZTUwIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9JyUyMzJjM2U1MCcvPjx0ZXh0IHg9JzUwJScgeT0nNTAlJyBkb21pbmFudC1iYXNlbGluZT0nbWlkZGxlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzUwJyBmaWxsPSd3aGl0ZSc+8J+TsDwvdGV4dD48L3N2Zz4iLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICB9CiAgXQp9">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:微软雅黑;background:#f5f5f5;display:flex;min-height:100vh;}
+
+/* 侧边栏样式 */
+.sidebar{width:220px;background:#2c3e50;color:#fff;position:fixed;height:100vh;overflow-y:auto;}
+.sidebar-title{padding:20px;text-align:center;font-size:18px;font-weight:bold;border-bottom:1px solid #34495e;}
+.sidebar-menu{list-style:none;}
+.sidebar-menu li{border-bottom:1px solid #34495e;}
+.sidebar-menu a{display:block;padding:15px 20px;color:#fff;text-decoration:none;transition:background 0.3s;}
+.sidebar-menu a:hover, .sidebar-menu a.active{background:#3498db;}
+.submenu{list-style:none;background:#34495e;display:none;}
+.submenu li{border-bottom:1px solid #4a6572;}
+.submenu a{padding:12px 30px;font-size:14px;}
+
+/* 主内容区 */
+.main-content{margin-left:220px;flex:1;padding:20px;}
+.page{display:none;}
+.page.active{display:block;}
+.page-title{font-size:22px;margin-bottom:20px;color:#333;}
+
+/* 通用样式 */
+.box{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px;}
+h3{margin:20px 0 10px;color:#555;font-size:16px;}
+input, select{padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:16px;}
+button{padding:8px 14px;border:none;border-radius:6px;background:#2196F3;color:#fff;font-size:16px;cursor:pointer;}
+button.danger{background:#f44336;}
+button.success{background:#4CAF50;}
+button.secondary{background:#607D8B;}
+button.warning{background:#FF9800;}
+button.info{background:#00BCD4;}
+
+/* 总分统计表 */
+.total-table{width:100%;border-collapse:collapse;}
+.total-table th,.total-table td{padding:12px;border:1px solid #eee;text-align:center;}
+.total-table th{background:#f8f8f8;font-weight:bold;}
+.total-table tr:nth-child(1) td{background:#fff3cd;font-weight:bold;}
+
+/* 管理员操作区 */
+.admin-panel{margin-bottom:20px;padding:15px;background:#f8f8f8;border-radius:8px;}
+.admin-row{display:flex;gap:10px;margin-bottom:10px;align-items:center;flex-wrap:wrap;}
+.admin-row:last-child{margin-bottom:0;}
+.step-input{width:80px;text-align:center;}
+
+/* 人员列表 */
+.person-list{margin-top:20px;}
+.person-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #eee;}
+.person-name{font-size:17px;width:120px;}
+.person-score{font-size:18px;font-weight:bold;width:60px;text-align:center;}
+.person-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.person-btns button{padding:5px 10px;font-size:14px;}
+
+/* 个人详细记录 */
+.detail-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px;text-align:center;}
+.detail-item{padding:10px;border-radius:6px;background:#f8f8f8;}
+.detail-label{font-size:12px;color:#666;margin-bottom:5px;}
+.detail-value{font-size:18px;font-weight:bold;}
+.detail-list{max-height:300px;overflow-y:auto;border:1px solid #eee;border-radius:6px;}
+.detail-record{padding:8px 12px;border-bottom:1px solid #eee;font-size:14px;}
+.detail-record-time{color:#999;font-size:12px;}
+
+/* 分类颜色 */
+.category-gongcha{color:#2196F3;}
+.category-huodong{color:#4CAF50;}
+.category-gongxian{color:#FF9800;}
+.category-jianfen{color:#f44336;}
+
+/* 只读模式提示 */
+.view-tip{text-align:center;color:#666;margin:15px 0;display:none;}
+
+/* 模态框样式 */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;}
+.modal-content{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;}
+.modal-title{text-align:center;margin-bottom:15px;font-size:18px;font-weight:bold;}
+.modal-row{margin-bottom:12px;}
+.modal-row label{display:block;margin-bottom:5px;font-size:14px;}
+.modal-buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+.checkbox-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee;}
+.checkbox-item:last-child{border-bottom:none;}
+
+/* 响应式适配 */
+@media (max-width: 768px){
+  .sidebar{width:100%;height:auto;position:relative;}
+  .main-content{margin-left:0;}
+  .detail-summary{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <div class="sidebar-title">多人记分板</div>
+  <ul class="sidebar-menu">
+    <li><a href="#" class="active" onclick="showPage('home')">🏠 首页</a></li>
+    <li id="scoreMenu"><a href="#" onclick="showPage('score')">➕ 加减分</a></li>
+    <li>
+      <a href="#" onclick="toggleSubmenu('detailSubmenu')">📊 分数详细</a>
+      <ul class="submenu" id="detailSubmenu">
+        <!-- 人员列表会动态生成在这里 -->
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-content">
+  <!-- 只读模式提示 -->
+  <div class="view-tip">游客只读模式，无法编辑</div>
+  
+  <!-- 首页：只显示总分排名 -->
+  <div class="page active" id="homePage">
+    <h2 class="page-title">总分排名</h2>
+    <div class="box">
+      <table class="total-table" id="homeTotalTable">
+        <thead>
+          <tr><th>排名</th><th>姓名</th><th>总分</th></tr>
+        </thead>
+        <tbody id="homeTotalBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 加减分页面：所有操作功能 -->
+  <div class="page" id="scorePage">
+    <h2 class="page-title">加减分管理</h2>
+    
+    <!-- 管理员操作区 -->
+    <div class="box" id="adminArea">
+      <div class="admin-panel">
+        <div class="admin-row">
+          <input type="text" id="nameInput" placeholder="输入人员姓名" style="flex:1;">
+          <button onclick="addPerson()">添加人员</button>
+        </div>
+        <div class="admin-row">
+          <span>加减分步长：</span>
+          <input type="number" id="stepInput" class="step-input" value="1" min="1">
+          <span>分</span>
+        </div>
+        <div class="admin-row">
+          <button class="success" onclick="batchAdd()">批量全员加分</button>
+          <button class="danger" onclick="batchSub()">批量全员减分</button>
+          <button class="warning" onclick="openBatchEditModal()">批量指定改分</button>
+        </div>
+        <div class="admin-row">
+          <button onclick="resetAll()">重置所有人分数</button>
+          <button class="info" onclick="openChangePasswordModal()">修改密码</button>
+        </div>
+        <div class="admin-row">
+          <button class="secondary" onclick="exportScore()">导出分数排名</button>
+          <button class="secondary" onclick="exportHistory()">导出操作历史</button>
+        </div>
+      </div>
+
+      <!-- 人员列表 -->
+      <h3>人员列表</h3>
+      <div class="person-list" id="scorePersonList"></div>
+    </div>
+  </div>
+
+  <!-- 分数详细页面：个人记录 -->
+  <div class="page" id="detailPage">
+    <h2 class="page-title">分数详细记录</h2>
+    <div class="box" id="detailContent">
+      <p style="text-align:center;color:#999;">请从左侧侧边栏选择人员查看详细记录</p>
+    </div>
+  </div>
+</div>
+
+<!-- 加减分模态框 -->
+<div class="modal" id="scoreModal">
+  <div class="modal-content">
+    <div class="modal-title" id="scoreModalTitle">加分</div>
+    <div class="modal-row">
+      <label>人员：</label>
+      <div id="scoreModalPerson" style="font-weight:bold;"></div>
+    </div>
+    <div class="modal-row">
+      <label>分类：</label>
+      <select id="scoreModalCategory" style="width:100%;">
+        <option value="gongcha">公差加分</option>
+        <option value="huodong">活动加分</option>
+        <option value="gongxian">贡献加分</option>
+        <option value="jianfen">减分</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <label>分数：</label>
+      <input type="number" id="scoreModalScore" style="width:100%;" value="1">
+    </div>
+    <div class="modal-row">
+      <label>项目名称：</label>
+      <input type="text" id="scoreModalItem" style="width:100%;" placeholder="请输入具体项目名称">
+    </div>
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeScoreModal()">取消</button>
+      <button class="success" onclick="executeScoreChange()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量指定改分模态框 -->
+<div class="modal" id="batchEditModal">
+  <div class="modal-content">
+    <div class="modal-title">批量指定人员改分</div>
+    <div class="modal-row">
+      <label>选择要修改的人员：</label>
+      <div id="batchPersonList"></div>
+    </div>
+    <div class="modal-row">
+      <label>分类：</label>
+      <select id="batchEditCategory" style="width:100%;">
+        <option value="gongcha">公差加分</option>
+        <option value="huodong">活动加分</option>
+        <option value="gongxian">贡献加分</option>
+        <option value="jianfen">减分</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <label>修改方式：</label>
+      <select id="batchEditType" style="width:100%;">
+        <option value="add">加分</option>
+        <option value="set">直接设置为</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <label>分数：</label>
+      <input type="number" id="batchEditScore" style="width:100%;" value="1">
+    </div>
+    <div class="modal-row">
+      <label>项目名称：</label>
+      <input type="text" id="batchEditItem" style="width:100%;" placeholder="请输入具体项目名称">
+    </div>
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeBatchEditModal()">取消</button>
+      <button class="success" onclick="executeBatchEdit()">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div class="modal" id="changePasswordModal">
+  <div class="modal-content">
+    <div class="modal-title">修改管理员密码</div>
+    <div class="modal-row">
+      <label>原密码：</label>
+      <input type="password" id="oldPassword" style="width:100%;">
+    </div>
+    <div class="modal-row">
+      <label>新密码：</label>
+      <input type="password" id="newPassword" style="width:100%;">
+    </div>
+    <div class="modal-row">
+      <label>确认新密码：</label>
+      <input type="password" id="confirmPassword" style="width:100%;">
+    </div>
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeChangePasswordModal()">取消</button>
+      <button class="success" onclick="changePassword()">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 全局变量，存储当前操作的人员索引和类型
+let currentScoreIdx = -1;
+let currentScoreType = '';
+
+// 数据存储：人员列表+历史记录+管理员密码
+let data = JSON.parse(localStorage.getItem('scoreData')) || {
+  persons: [],
+  history: [],
+  adminPassword: '123456' // 默认密码
+};
+
+// 分类名称映射
+const categoryMap = {
+  gongcha: '公差加分',
+  huodong: '活动加分',
+  gongxian: '贡献加分',
+  jianfen: '减分'
+};
+
+// 分类颜色映射
+const categoryColorMap = {
+  gongcha: 'category-gongcha',
+  huodong: 'category-huodong',
+  gongxian: 'category-gongxian',
+  jianfen: 'category-jianfen'
+};
+
+// 获取当前步长
+function getStep(){
+  return parseInt(document.getElementById('stepInput').value) || 1;
+}
+
+// 验证管理员密码
+function verifyPassword(){
+  let password = prompt('请输入管理员密码：');
+  if(password === null)return false;
+  if(password === data.adminPassword)return true;
+  alert('密码错误！');
+  return false;
+}
+
+// 计算个人总分
+function calculateTotal(person){
+  return person.gongcha + person.huodong + person.gongxian - person.jianfen;
+}
+
+// 切换页面
+function showPage(pageName){
+  // 隐藏所有页面
+  document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));
+  // 移除所有菜单激活状态
+  document.querySelectorAll('.sidebar-menu a').forEach(a=>a.classList.remove('active'));
+  
+  // 显示指定页面
+  document.getElementById(pageName+'Page').classList.add('active');
+  
+  // 激活对应菜单
+  if(pageName === 'home'){
+    document.querySelector('.sidebar-menu a[onclick="showPage(\'home\')"]').classList.add('active');
+  } else if(pageName === 'score'){
+    document.querySelector('.sidebar-menu a[onclick="showPage(\'score\')"]').classList.add('active');
+  } else if(pageName === 'detail'){
+    document.querySelector('.sidebar-menu a[onclick="toggleSubmenu(\'detailSubmenu\')"]').classList.add('active');
+  }
+}
+
+// 切换分数详细子菜单
+function toggleSubmenu(submenuId){
+  let submenu = document.getElementById(submenuId);
+  if(submenu.style.display === 'block'){
+    submenu.style.display = 'none';
+  } else {
+    submenu.style.display = 'block';
+    // 自动跳转到分数详细页面
+    showPage('detail');
+  }
+}
+
+// 查看个人详细记录
+function showPersonDetail(idx){
+  let person = data.persons[idx];
+  let html = `
+    <h3>${person.name} 的分数明细</h3>
+    <div class="detail-summary">
+      <div class="detail-item">
+        <div class="detail-label">总分</div>
+        <div class="detail-value">${calculateTotal(person)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label category-gongcha">公差加分</div>
+        <div class="detail-value category-gongcha">${person.gongcha}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label category-huodong">活动加分</div>
+        <div class="detail-value category-huodong">${person.huodong}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label category-gongxian">贡献加分</div>
+        <div class="detail-value category-gongxian">${person.gongxian}</div>
+      </div>
+    </div>
+    <div class="detail-summary" style="grid-template-columns:1fr;">
+      <div class="detail-item">
+        <div class="detail-label category-jianfen">减分</div>
+        <div class="detail-value category-jianfen">${person.jianfen}</div>
+      </div>
+    </div>
+    <h4>详细记录</h4>
+    <div class="detail-list">
+  `;
+  
+  // 渲染个人记录
+  if(person.records.length === 0){
+    html += '<div style="text-align:center;padding:20px;color:#999">暂无记录</div>';
+  } else {
+    person.records.slice().reverse().forEach(record=>{
+      let typeClass = categoryColorMap[record.category];
+      let changeText = record.change>0 ? `+${record.change}` : record.change;
+      html += `
+      <div class="detail-record">
+        <div><span class="${typeClass}">${categoryMap[record.category]} ${changeText}分</span>：${record.item}</div>
+        <div class="detail-record-time">${record.time}</div>
+      </div>
+      `;
+    });
+  }
+  
+  html += '</div>';
+  document.getElementById('detailContent').innerHTML = html;
+  
+  // 跳转到分数详细页面
+  showPage('detail');
+}
+
+// 初始化渲染
+function render(){
+  renderHomePage();
+  renderScorePage();
+  renderSidebarSubmenu();
+  saveData();
+}
+
+// 渲染首页
+function renderHomePage(){
+  // 按总分降序排序
+  let sorted = [...data.persons].sort((a,b)=>calculateTotal(b)-calculateTotal(a));
+  let html = '';
+  sorted.forEach((person,idx)=>{
+    html += `
+    <tr>
+      <td>${idx+1}</td>
+      <td>${person.name}</td>
+      <td>${calculateTotal(person)}</td>
+    </tr>
+    `;
+  });
+  document.getElementById('homeTotalBody').innerHTML = html || '<tr><td colspan="3">暂无数据</td></tr>';
+}
+
+// 渲染加减分页面
+function renderScorePage(){
+  let html = '';
+  data.persons.forEach((person,idx)=>{
+    html += `
+    <div class="person-item">
+      <div class="person-name">${person.name}</div>
+      <div class="person-score">${calculateTotal(person)}</div>
+      <div class="person-btns">
+        <button class="success" onclick="openScoreModal(${idx}, 'add')">+${getStep()}</button>
+        <button class="danger" onclick="openScoreModal(${idx}, 'sub')">-${getStep()}</button>
+        <button class="warning" onclick="openEditScoreModal(${idx})">编辑</button>
+        <button onclick="delPerson(${idx})">删除</button>
+      </div>
+    </div>
+    `;
+  });
+  document.getElementById('scorePersonList').innerHTML = html || '<div style="text-align:center;padding:20px;color:#999">暂无人员</div>';
+}
+
+// 渲染侧边栏分数详细子菜单
+function renderSidebarSubmenu(){
+  let html = '';
+  data.persons.forEach((person,idx)=>{
+    html += `<li><a href="#" onclick="showPersonDetail(${idx})">${person.name}</a></li>`;
+  });
+  document.getElementById('detailSubmenu').innerHTML = html || '<li><a href="#">暂无人员</a></li>';
+}
+
+// 添加人员
+function addPerson(){
+  if(!verifyPassword())return;
+  let name = document.getElementById('nameInput').value.trim();
+  if(!name)return;
+  if(data.persons.some(p=>p.name===name)){
+    alert('该人员已存在');
+    return;
+  }
+  // 初始化分类分数
+  data.persons.push({
+    name,
+    gongcha: 0,
+    huodong: 0,
+    gongxian: 0,
+    jianfen: 0,
+    records: []
+  });
+  document.getElementById('nameInput').value='';
+  addHistory(name, 'gongcha', 0, '添加人员');
+  render();
+}
+
+// 打开加减分模态框
+function openScoreModal(idx, type){
+  if(!verifyPassword())return;
+  let person = data.persons[idx];
+  document.getElementById('scoreModalTitle').textContent = type === 'add' ? '加分' : '减分';
+  document.getElementById('scoreModalPerson').textContent = person.name;
+  document.getElementById('scoreModalScore').value = getStep();
+  document.getElementById('scoreModalItem').value = '';
+  // 减分默认选中减分类别
+  if(type === 'sub'){
+    document.getElementById('scoreModalCategory').value = 'jianfen';
+  } else {
+    document.getElementById('scoreModalCategory').value = 'gongcha';
+  }
+  // 存储当前操作的人员索引和类型
+  currentScoreIdx = idx;
+  currentScoreType = type;
+  document.getElementById('scoreModal').style.display = 'flex';
+}
+
+// 关闭加减分模态框
+function closeScoreModal(){
+  document.getElementById('scoreModal').style.display = 'none';
+  // 重置全局变量
+  currentScoreIdx = -1;
+  currentScoreType = '';
+}
+
+// 执行加减分
+function executeScoreChange(){
+  try {
+    // 检查是否有有效的操作
+    if(currentScoreIdx === -1 || !data.persons[currentScoreIdx]){
+      alert('操作无效，请重新打开加减分窗口');
+      closeScoreModal();
+      return;
+    }
+    
+    let person = data.persons[currentScoreIdx];
+    let category = document.getElementById('scoreModalCategory').value;
+    let scoreInput = document.getElementById('scoreModalScore').value;
+    let item = document.getElementById('scoreModalItem').value.trim();
+    
+    // 验证输入
+    let score = parseInt(scoreInput);
+    if(isNaN(score) || score <= 0){
+      alert('请输入有效的正整数分数！');
+      return;
+    }
+    if(!item){
+      alert('请输入项目名称！');
+      return;
+    }
+    
+    // 计算分数变化
+    let change = currentScoreType === 'add' ? score : -score;
+    
+    // 更新对应分类的分数
+    person[category] += Math.abs(change);
+    
+    // 添加个人记录
+    person.records.push({
+      category,
+      change: Math.abs(change),
+      item,
+      time: getCurrentTime()
+    });
+    
+    // 添加全局历史
+    addHistory(person.name, category, change, item);
+    
+    // 关闭模态框并重新渲染
+    closeScoreModal();
+    render();
+  } catch (e) {
+    alert('操作出错：' + e.message);
+    closeScoreModal();
+  }
+}
+
+// 打开编辑分数模态框
+function openEditScoreModal(idx){
+  if(!verifyPassword())return;
+  let person = data.persons[idx];
+  let category = prompt(`请选择要编辑的分类：\n1. 公差加分\n2. 活动加分\n3. 贡献加分\n4. 减分\n请输入数字（1-4）：`);
+  
+  if(category === null)return;
+  
+  let categoryKey;
+  switch(category){
+    case '1': categoryKey = 'gongcha'; break;
+    case '2': categoryKey = 'huodong'; break;
+    case '3': categoryKey = 'gongxian'; break;
+    case '4': categoryKey = 'jianfen'; break;
+    default:
+      alert('请输入有效的数字！');
+      return;
+  }
+  
+  let newScoreStr = prompt(`请输入 ${person.name} ${categoryMap[categoryKey]} 的新分数（当前：${person[categoryKey]}分）：`, person[categoryKey]);
+  
+  if(newScoreStr === null)return;
+  
+  let newScore = parseInt(newScoreStr);
+  if(isNaN(newScore) || newScore < 0){
+    alert('请输入有效的非负整数！');
+    return;
+  }
+  
+  let item = prompt('请输入修改原因：');
+  if(item === null)return;
+  
+  let change = newScore - person[categoryKey];
+  person[categoryKey] = newScore;
+  
+  // 添加个人记录
+  person.records.push({
+    category: categoryKey,
+    change: change,
+    item: `修改为${newScore}分，${item || '无原因'}`,
+    time: getCurrentTime()
+  });
+  
+  // 添加全局历史
+  addHistory(person.name, categoryKey, change, `修改为${newScore}分，${item || '无原因'}`);
+  
+  render();
+}
+
+// 批量全员加分
+function batchAdd(){
+  if(!verifyPassword())return;
+  if(data.persons.length===0){
+    alert('请先添加人员');
+    return;
+  }
+  
+  let category = prompt(`请选择加分分类：\n1. 公差加分\n2. 活动加分\n3. 贡献加分\n请输入数字（1-3）：`);
+  
+  if(category === null)return;
+  
+  let categoryKey;
+  switch(category){
+    case '1': categoryKey = 'gongcha'; break;
+    case '2': categoryKey = 'huodong'; break;
+    case '3': categoryKey = 'gongxian'; break;
+    default:
+      alert('请输入有效的数字！');
+      return;
+  }
+  
+  let step = getStep();
+  let item = prompt(`请输入给所有人加${step}分的项目名称：`);
+  if(item === null || !item){
+    alert('请输入项目名称！');
+    return;
+  }
+  
+  data.persons.forEach(person=>{
+    person[categoryKey] += step;
+    person.records.push({
+      category: categoryKey,
+      change: step,
+      item,
+      time: getCurrentTime()
+    });
+  });
+  
+  addHistory('全员', categoryKey, step, item);
+  render();
+}
+
+// 批量全员减分
+function batchSub(){
+  if(!verifyPassword())return;
+  if(data.persons.length===0){
+    alert('请先添加人员');
+    return;
+  }
+  
+  let step = getStep();
+  let item = prompt(`请输入给所有人减${step}分的项目名称：`);
+  if(item === null || !item){
+    alert('请输入项目名称！');
+    return;
+  }
+  
+  data.persons.forEach(person=>{
+    person.jianfen += step;
+    person.records.push({
+      category: 'jianfen',
+      change: step,
+      item,
+      time: getCurrentTime()
+    });
+  });
+  
+  addHistory('全员', 'jianfen', -step, item);
+  render();
+}
+
+// 打开批量指定改分模态框
+function openBatchEditModal(){
+  if(!verifyPassword())return;
+  if(data.persons.length===0){
+    alert('请先添加人员');
+    return;
+  }
+  // 渲染人员列表
+  let html = '';
+  data.persons.forEach((person,idx)=>{
+    html += `
+    <div class="checkbox-item">
+      <input type="checkbox" id="batchPerson${idx}" value="${idx}">
+      <label for="batchPerson${idx}">${person.name}（当前总分：${calculateTotal(person)}分）</label>
+    </div>
+    `;
+  });
+  document.getElementById('batchPersonList').innerHTML = html;
+  document.getElementById('batchEditScore').value = getStep();
+  document.getElementById('batchEditItem').value = '';
+  document.getElementById('batchEditModal').style.display = 'flex';
+}
+
+// 关闭批量指定改分模态框
+function closeBatchEditModal(){
+  document.getElementById('batchEditModal').style.display = 'none';
+}
+
+// 执行批量指定改分
+function executeBatchEdit(){
+  try {
+    // 获取选中的人员
+    let checkboxes = document.querySelectorAll('#batchPersonList input[type="checkbox"]:checked');
+    if(checkboxes.length===0){
+      alert('请至少选择一个人员！');
+      return;
+    }
+    // 获取修改参数
+    let category = document.getElementById('batchEditCategory').value;
+    let editType = document.getElementById('batchEditType').value;
+    let scoreInput = document.getElementById('batchEditScore').value;
+    let item = document.getElementById('batchEditItem').value.trim();
+    
+    let score = parseInt(scoreInput);
+    if(isNaN(score) || score < 0){
+      alert('请输入有效的非负整数分数！');
+      return;
+    }
+    if(!item){
+      alert('请输入项目名称！');
+      return;
+    }
+    
+    // 执行修改
+    checkboxes.forEach(checkbox=>{
+      let idx = parseInt(checkbox.value);
+      let person = data.persons[idx];
+      let change = 0;
+      
+      if(editType === 'add'){
+        change = score;
+        person[category] += score;
+      } else {
+        change = score - person[category];
+        person[category] = score;
+      }
+      
+      // 添加个人记录
+      person.records.push({
+        category,
+        change,
+        item: `批量${editType==='add'?'加分':'设置分数'}：${change>0?'+':''}${change}分，${item}`,
+        time: getCurrentTime()
+      });
+      
+      // 添加全局历史
+      addHistory(person.name, category, category==='jianfen'?-change:change, `批量${editType==='add'?'加分':'设置分数'}：${item}`);
+    });
+    
+    closeBatchEditModal();
+    render();
+  } catch (e) {
+    alert('批量操作出错：' + e.message);
+    closeBatchEditModal();
+  }
+}
+
+// 重置所有人分数
+function resetAll(){
+  if(!verifyPassword())return;
+  if(!confirm('确定要重置所有人分数吗？所有历史记录和个人明细都会被清空！'))return;
+  data.persons.forEach(person=>{
+    person.gongcha = 0;
+    person.huodong = 0;
+    person.gongxian = 0;
+    person.jianfen = 0;
+    person.records = [];
+  });
+  data.history = [];
+  addHistory('全员', 'gongcha', 0, '所有分数和记录重置');
+  render();
+}
+
+// 删除人员
+function delPerson(idx){
+  if(!verifyPassword())return;
+  if(!confirm(`确定要删除 ${data.persons[idx].name} 吗？该人员的所有分数和记录都会被删除！`))return;
+  let name = data.persons[idx].name;
+  data.persons.splice(idx,1);
+  addHistory(name, 'gongcha', 0, '删除人员');
+  render();
+}
+
+// 添加全局历史记录
+function addHistory(personName, category, change, item){
+  data.history.push({
+    personName,
+    category,
+    change,
+    item,
+    time: getCurrentTime()
+  });
+}
+
+// 获取当前时间
+function getCurrentTime(){
+  let now = new Date();
+  return `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+// 保存数据到本地
+function saveData(){
+  localStorage.setItem('scoreData', JSON.stringify(data));
+}
+
+// 导出分数排名为Excel
+function exportScore(){
+  if(!verifyPassword())return;
+  if(data.persons.length===0){
+    alert('暂无分数数据可导出');
+    return;
+  }
+  
+  // 按总分降序排序
+  let sorted = [...data.persons].sort((a,b)=>calculateTotal(b)-calculateTotal(a));
+  
+  // 生成CSV内容（UTF-8 BOM解决中文乱码）
+  let csv = '\uFEFF排名,姓名,总分,公差加分,活动加分,贡献加分,减分\n';
+  sorted.forEach((person,idx)=>{
+    csv += `${idx+1},${person.name},${calculateTotal(person)},${person.gongcha},${person.huodong},${person.gongxian},${person.jianfen}\n`;
+  });
+  
+  // 下载文件
+  downloadFile(csv, `分数排名_${new Date().toLocaleDateString()}.csv`);
+}
+
+// 导出操作历史为Excel
+function exportHistory(){
+  if(!verifyPassword())return;
+  if(data.history.length===0){
+    alert('暂无操作历史可导出');
+    return;
+  }
+  
+  // 生成CSV内容（UTF-8 BOM解决中文乱码）
+  let csv = '\uFEFF时间,人员,分类,分数变化,项目\n';
+  data.history.forEach(record=>{
+    let changeText = record.change>0 ? `+${record.change}` : record.change;
+    csv += `${record.time},${record.personName},${categoryMap[record.category]},${changeText},${record.item || '无项目'}\n`;
+  });
+  
+  // 下载文件
+  downloadFile(csv, `操作历史_${new Date().toLocaleDateString()}.csv`);
+}
+
+// 通用下载文件函数
+function downloadFile(content, filename){
+  let blob = new Blob([content], {type: 'text/csv;charset=utf-8;'});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 打开修改密码模态框
+function openChangePasswordModal(){
+  if(!verifyPassword())return;
+  document.getElementById('oldPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  document.getElementById('changePasswordModal').style.display = 'flex';
+}
+
+// 关闭修改密码模态框
+function closeChangePasswordModal(){
+  document.getElementById('changePasswordModal').style.display = 'none';
+}
+
+// 修改管理员密码
+function changePassword(){
+  let oldPassword = document.getElementById('oldPassword').value;
+  let newPassword = document.getElementById('newPassword').value;
+  let confirmPassword = document.getElementById('confirmPassword').value;
+  if(oldPassword !== data.adminPassword){
+    alert('原密码错误！');
+    return;
+  }
+  if(newPassword !== confirmPassword){
+    alert('两次输入的新密码不一致！');
+    return;
+  }
+  if(newPassword.length < 4){
+    alert('密码长度至少4位！');
+    return;
+  }
+  data.adminPassword = newPassword;
+  saveData();
+  closeChangePasswordModal();
+  alert('密码修改成功！');
+}
+
+// 权限控制：加?view就是只读模式
+if(location.search.includes('view')){
+  // 隐藏加减分菜单和所有操作按钮
+  document.getElementById('scoreMenu').style.display='none';
+  document.getElementById('adminArea').style.display='none';
+  document.querySelector('.view-tip').style.display='block';
+}
+
+// 页面加载时初始化
+render();
+
+// 步长改变时重新渲染
+document.getElementById('stepInput').addEventListener('input', render);
+
+// 点击模态框外部关闭
+window.onclick = function(event){
+  if(event.target === document.getElementById('scoreModal')){
+    closeScoreModal();
+  }
+  if(event.target === document.getElementById('batchEditModal')){
+    closeBatchEditModal();
+  }
+  if(event.target === document.getElementById('changePasswordModal')){
+    closeChangePasswordModal();
+  }
+}
+
+// PWA 安装提示
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.deferredPrompt = e;
+});
+</script>
+</body>
+</html>
